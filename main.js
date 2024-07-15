@@ -2,8 +2,9 @@
 
 import { checkHeroSilhouetteOverlap } from './game.js';
 import { handleIdleState } from './handleIdleState.js';
-import { animateBushes } from './bushAnimation.js'; // Import funkcije za animaciju bush elemenata
-import { setupJumpHandling } from './handleIdleJump.js'; // Import jump handling functions
+import { animateBushes } from './bushAnimation.js';
+import { setupJumpHandling } from './handleIdleJump.js';
+import { checkCollision } from './collision.js'; // Import funkcije za detekciju kolizije
 
 $(document).ready(function () {
     const hero = $("#hero");
@@ -16,12 +17,12 @@ $(document).ready(function () {
     let timerStarted = false;
     let startTime, intervalId;
     let highestScore = 0;
-    const scrollSpeed = 30; // Increased speed for scrolling
+    const scrollSpeed = 30;
     let isJumping = false;
     let lastScrollTime = 0;
     let isRunningRight = false;
     let isRunningLeft = false;
-    let lastDirection = "idle-right"; // Start with idle-right
+    let lastDirection = "idle-right";
     let touchStartX = 0;
     let touchStartY = 0;
 
@@ -56,12 +57,11 @@ $(document).ready(function () {
         return number.toString().padStart(length, "0");
     }
 
-    // Handle scrolling for both mouse wheel and touch events
     function handleScroll(scrollDirection) {
         $(".start").fadeOut();
 
         const now = Date.now();
-        if (!gameRunning || now - lastScrollTime < 16) return; // Limit to 60 fps
+        if (!gameRunning || now - lastScrollTime < 16) return;
         lastScrollTime = now;
 
         if (!timerStarted) {
@@ -81,7 +81,6 @@ $(document).ready(function () {
             setHeroState("running-left");
         }
 
-        // Reset to idle state immediately when scrolling stops
         clearTimeout(hero.data("scrollTimeout"));
         hero.data(
             "scrollTimeout",
@@ -108,7 +107,6 @@ $(document).ready(function () {
         handleScroll(scrollDirection);
     });
 
-    // Handle touch events for scrolling
     $(document).on("touchstart", function (e) {
         touchStartX = e.originalEvent.touches[0].pageX;
         touchStartY = e.originalEvent.touches[0].pageY;
@@ -126,7 +124,6 @@ $(document).ready(function () {
         }
     });
 
-    // Call setupJumpHandling to initialize jump handling
     setupJumpHandling(hero, gameRunning, isJumping, handleJump, touchStartY);
 
     function handleJump() {
@@ -137,30 +134,14 @@ $(document).ready(function () {
         setTimeout(() => {
             hero.removeClass("jump");
             isJumping = false;
-        }, 500); // Duration of the jump
+        }, 500);
     }
 
-    function checkCollision() {
-        const tolerance = 10;
-        const heroPos = hero[0].getBoundingClientRect();
-
-        $(".obstacle").each(function () {
-            const obstaclePos = this.getBoundingClientRect();
-
-            if (
-                !(
-                    heroPos.right < obstaclePos.left + tolerance ||
-                    heroPos.left > obstaclePos.right - tolerance ||
-                    heroPos.bottom < obstaclePos.top ||
-                    heroPos.top > obstaclePos.bottom
-                )
-            ) {
-                gameOver();
-            }
-        });
+    function checkCollisionsWrapper() {
+        checkCollision(hero, gameOver);
     }
 
-    setInterval(checkCollision, 100);
+    setInterval(checkCollisionsWrapper, 100);
 
     function checkWin() {
         const heroPos = hero[0].getBoundingClientRect();
@@ -216,22 +197,19 @@ $(document).ready(function () {
         clearInterval(intervalId);
         $("#chronometer, .chronometer").text("00:00");
 
-        // Reset hero position
         hero.css("top", "calc(50% + 200px)");
         hero.removeClass("invert");
 
-        // Reset obstacles, bush, floor, and finish line positions
         $(".obstacle, .bush, .floor, .object, #finishLine").each(function () {
             $(this).css("left", $(this).data("initialLeft"));
         });
     }
 
-    // Store initial positions
     $(".obstacle, .bush, .floor, .object, #finishLine").each(function () {
         $(this).data("initialLeft", $(this).css("left"));
     });
 
-    animateBushes(); // Poziv funkcije za animaciju bush elemenata
+    animateBushes();
 
     setInterval(() => {
         checkHeroSilhouetteOverlap(hero);
