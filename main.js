@@ -19,7 +19,8 @@ $(document).ready(function () {
     let timerStarted = false;
     let startTime, intervalId;
     let highestScore = 0;
-    const scrollSpeed = 45;
+    let gameWon = false;
+    const scrollSpeed = 30;
     let isJumping = false;
     let lastScrollTime = 0;
     let isRunningRight = false;
@@ -40,6 +41,8 @@ $(document).ready(function () {
     setHeroState("idle-right");
 
     function handleScroll(scrollDirection) {
+        if (!gameRunning) return; // Prevent hero from moving when the game is over
+
         $(".start").fadeOut();
 
         const now = Date.now();
@@ -78,7 +81,7 @@ $(document).ready(function () {
                 const left = parseInt($(this).css("left"));
                 $(this).css("left", left - scrollDirection * scrollSpeed + "px");
             });
-            checkWin(hero, finishLine, () => gameWin(setGameRunning, intervalId, startTime, highestScore, pad, setHighestScore));
+            checkWin(hero, finishLine, () => gameWin(setGameRunning, intervalId, startTime, highestScore, pad, setHighestScore, setGameWon));
             checkHeroSilhouetteOverlap(hero);
         });
     }
@@ -106,12 +109,16 @@ $(document).ready(function () {
         }
     });
 
-    setupJumpHandling(hero, gameRunning, isJumping, () => handleJump(hero, gameRunning, isJumping), touchStartY);
+    setupJumpHandling(hero, gameRunning, isJumping, () => {
+        if (!gameRunning) return; // Prevent jumping when the game is over
+        handleJump(hero, gameRunning, isJumping);
+    }, touchStartY);
 
-    setInterval(() => checkCollisionWrapper(hero, checkCollision, () => gameOver(gameRunning, intervalId)), 100);
+    setInterval(() => checkCollisionWrapper(hero, checkCollision, () => gameOver(setGameRunning, intervalId), gameWon), 100);
 
     $(".restartButton").click(function () {
         resetGame(hero, setGameRunning, setTimerStarted, intervalId);
+        gameWon = false; // Reset gameWon flag when the game is restarted
         $(".game-over, .win").fadeOut();
     });
 
@@ -143,5 +150,9 @@ $(document).ready(function () {
 
     function setHighestScore(value) {
         highestScore = value;
+    }
+
+    function setGameWon(value) {
+        gameWon = value;
     }
 });

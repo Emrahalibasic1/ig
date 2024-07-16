@@ -16,20 +16,22 @@ export function checkWin(hero, finishLine, gameWin) {
     }
 }
 
-export function checkCollisionWrapper(hero, checkCollision, gameOver) {
-    checkCollision(hero, gameOver);
+export function checkCollisionWrapper(hero, checkCollision, gameOver, gameWon) {
+    if (!gameWon) { // Prevent collision detection if the game is won
+        checkCollision(hero, gameOver);
+    }
 }
 
-export function gameOver(gameRunning, intervalId) {
-    if (!gameRunning) return;
-    gameRunning = false;
+export function gameOver(setGameRunning, intervalId) {
+    setGameRunning(false);
     clearInterval(intervalId);
     $(".start").fadeOut();
     $(".game-over").fadeIn();
 }
 
-export function gameWin(setGameRunning, intervalId, startTime, highestScore, pad, setHighestScore) {
+export function gameWin(setGameRunning, intervalId, startTime, highestScore, pad, setHighestScore, setGameWon) {
     setGameRunning(false);
+    setGameWon(true);
     clearInterval(intervalId);
     const now = Date.now();
     const elapsed = now - startTime;
