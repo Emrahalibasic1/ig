@@ -28,13 +28,14 @@ export function gameOver(gameRunning, intervalId) {
     $(".game-over").fadeIn();
 }
 
-export function gameWin(setGameRunning, intervalId, startTime, highestScore, pad) {
+export function gameWin(setGameRunning, intervalId, startTime, highestScore, pad, setHighestScore) {
     setGameRunning(false);
     clearInterval(intervalId);
     const now = Date.now();
     const elapsed = now - startTime;
     if (elapsed < highestScore || highestScore === 0) {
         highestScore = elapsed;
+        setHighestScore(highestScore);
         const minutes = Math.floor(highestScore / (1000 * 60));
         const seconds = Math.floor((highestScore % (1000 * 60)) / 1000);
         const milliseconds = Math.floor((highestScore % 1000) / 10);

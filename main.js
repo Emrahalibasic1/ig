@@ -78,7 +78,7 @@ $(document).ready(function () {
                 const left = parseInt($(this).css("left"));
                 $(this).css("left", left - scrollDirection * scrollSpeed + "px");
             });
-            checkWin(hero, finishLine, () => gameWin(setGameRunning, intervalId, startTime, highestScore, pad));
+            checkWin(hero, finishLine, () => gameWin(setGameRunning, intervalId, startTime, highestScore, pad, setHighestScore));
             checkHeroSilhouetteOverlap(hero);
         });
     }
@@ -139,5 +139,9 @@ $(document).ready(function () {
 
     function setTimerStarted(value) {
         timerStarted = value;
+    }
+
+    function setHighestScore(value) {
+        highestScore = value;
     }
 });
