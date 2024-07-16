@@ -4,7 +4,9 @@ import { checkHeroSilhouetteOverlap } from './game.js';
 import { handleIdleState } from './handleIdleState.js';
 import { animateBushes } from './bushAnimation.js';
 import { setupJumpHandling } from './handleIdleJump.js';
-import { checkCollision } from './collision.js'; // Import funkcije za detekciju kolizije
+import { checkCollision } from './collision.js';
+import { checkWin, checkCollisionWrapper, gameOver, gameWin } from './gameLogic.js';
+import { startTimer, updateTimer, handleJump, resetGame, pad } from './gameUI.js';
 
 $(document).ready(function () {
     const hero = $("#hero");
@@ -17,7 +19,7 @@ $(document).ready(function () {
     let timerStarted = false;
     let startTime, intervalId;
     let highestScore = 0;
-    const scrollSpeed = 30;
+    const scrollSpeed = 45;
     let isJumping = false;
     let lastScrollTime = 0;
     let isRunningRight = false;
@@ -37,26 +39,6 @@ $(document).ready(function () {
 
     setHeroState("idle-right");
 
-    function startTimer() {
-        startTime = Date.now();
-        intervalId = setInterval(updateTimer, 100);
-    }
-
-    function updateTimer() {
-        const now = Date.now();
-        const elapsed = now - startTime;
-
-        const minutes = Math.floor(elapsed / (1000 * 60));
-        const seconds = Math.floor((elapsed % (1000 * 60)) / 1000);
-        const milliseconds = Math.floor((elapsed % 1000) / 100);
-
-        $("#chronometer, .chronometer").text(`${pad(minutes, 2)}:${pad(seconds, 2)}`);
-    }
-
-    function pad(number, length) {
-        return number.toString().padStart(length, "0");
-    }
-
     function handleScroll(scrollDirection) {
         $(".start").fadeOut();
 
@@ -65,7 +47,7 @@ $(document).ready(function () {
         lastScrollTime = now;
 
         if (!timerStarted) {
-            startTimer();
+            startTimer(setStartTime, setIntervalId, updateTimer);
             timerStarted = true;
         }
 
@@ -96,7 +78,7 @@ $(document).ready(function () {
                 const left = parseInt($(this).css("left"));
                 $(this).css("left", left - scrollDirection * scrollSpeed + "px");
             });
-            checkWin();
+            checkWin(hero, finishLine, () => gameWin(setGameRunning, intervalId, startTime, highestScore, pad));
             checkHeroSilhouetteOverlap(hero);
         });
     }
@@ -124,86 +106,14 @@ $(document).ready(function () {
         }
     });
 
-    setupJumpHandling(hero, gameRunning, isJumping, handleJump, touchStartY);
+    setupJumpHandling(hero, gameRunning, isJumping, () => handleJump(hero, gameRunning, isJumping), touchStartY);
 
-    function handleJump() {
-        if (!gameRunning || isJumping) return;
-
-        isJumping = true;
-        hero.addClass("jump");
-        setTimeout(() => {
-            hero.removeClass("jump");
-            isJumping = false;
-        }, 500);
-    }
-
-    function checkCollisionsWrapper() {
-        checkCollision(hero, gameOver);
-    }
-
-    setInterval(checkCollisionsWrapper, 100);
-
-    function checkWin() {
-        const heroPos = hero[0].getBoundingClientRect();
-        const finishPos = finishLine[0].getBoundingClientRect();
-
-        if (
-            !(
-                heroPos.right < finishPos.left ||
-                heroPos.left > finishPos.right ||
-                heroPos.bottom < finishPos.top ||
-                heroPos.top > finishPos.bottom
-            )
-        ) {
-            gameWin();
-        }
-    }
-
-    function gameOver() {
-        if (!gameRunning) return;
-        gameRunning = false;
-        clearInterval(intervalId);
-        $(".start").fadeOut();
-        $(".game-over").fadeIn();
-    }
-
-    function gameWin() {
-        if (!gameRunning) return;
-        gameRunning = false;
-        clearInterval(intervalId);
-        const now = Date.now();
-        const elapsed = now - startTime;
-        if (elapsed < highestScore || highestScore === 0) {
-            highestScore = elapsed;
-            const minutes = Math.floor(highestScore / (1000 * 60));
-            const seconds = Math.floor((highestScore % (1000 * 60)) / 1000);
-            const milliseconds = Math.floor((highestScore % 1000) / 10);
-            $("#highestScore, .highestScore").text(
-                `${pad(minutes, 2)}:${pad(seconds, 2)}`
-            );
-        }
-        $(".win").fadeIn();
-        $(".bestTime").fadeIn();
-    }
+    setInterval(() => checkCollisionWrapper(hero, checkCollision, () => gameOver(gameRunning, intervalId)), 100);
 
     $(".restartButton").click(function () {
-        resetGame();
+        resetGame(hero, setGameRunning, setTimerStarted, intervalId);
         $(".game-over, .win").fadeOut();
     });
-
-    function resetGame() {
-        gameRunning = true;
-        timerStarted = false;
-        clearInterval(intervalId);
-        $("#chronometer, .chronometer").text("00:00");
-
-        hero.css("top", "calc(50% + 200px)");
-        hero.removeClass("invert");
-
-        $(".obstacle, .bush, .floor, .object, #finishLine").each(function () {
-            $(this).css("left", $(this).data("initialLeft"));
-        });
-    }
 
     $(".obstacle, .bush, .floor, .object, #finishLine").each(function () {
         $(this).data("initialLeft", $(this).css("left"));
@@ -214,4 +124,20 @@ $(document).ready(function () {
     setInterval(() => {
         checkHeroSilhouetteOverlap(hero);
     }, 100);
+
+    function setStartTime(value) {
+        startTime = value;
+    }
+
+    function setIntervalId(value) {
+        intervalId = value;
+    }
+
+    function setGameRunning(value) {
+        gameRunning = value;
+    }
+
+    function setTimerStarted(value) {
+        timerStarted = value;
+    }
 });
